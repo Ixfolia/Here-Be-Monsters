@@ -6,6 +6,9 @@ public class ShipMovement : MonoBehaviour
     [SerializeField] private float maxSpeed = 10f;
     [SerializeField] private float acceleration = 5f;
     [SerializeField] private float deceleration = 3f;
+    [SerializeField] private float boostMultiplier = 1.5f; // Speed multiplier when boosting
+    [SerializeField] private bool isBoosting = false;
+    public bool IsBoosting => isBoosting;
 
     // Rotation
     [SerializeField] private float rotationSpeed = 200f;
@@ -31,11 +34,15 @@ public class ShipMovement : MonoBehaviour
 
     void HandleMovementInput()
     {
+        // Check for boost input
+        isBoosting = Input.GetKey(KeyCode.LeftShift);
+        
         // Check for forward movement input
         if (Input.GetKey(KeyCode.W))
         {
             isMovingForward = true;
-            currentSpeed = Mathf.Min(currentSpeed + acceleration * Time.deltaTime, maxSpeed);
+            float targetSpeed = isBoosting ? maxSpeed * boostMultiplier : maxSpeed;
+            currentSpeed = Mathf.Min(currentSpeed + acceleration * Time.deltaTime, targetSpeed);
         }
         // Check for backward movement input
         else if (Input.GetKey(KeyCode.S))
