@@ -78,6 +78,65 @@ public class CannonController : MonoBehaviour
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
     }
 
+    private void CreateAimLine()
+    {
+        if (aimParticlePrefab == null) return;
+        
+        ClearAimLine(); // Clear any existing aim line
+        
+        for (int i = 0; i < aimLineParticles; i++)
+        {
+            // Calculate position along the aim line
+            float t = (float)i / (aimLineParticles - 1);
+            Vector3 position = transform.position + transform.up * t * aimLineLength;
+            
+            // Create and configure the aim particle
+            GameObject particle = Instantiate(aimParticlePrefab, position, Quaternion.identity);
+            SpriteRenderer sr = particle.GetComponent<SpriteRenderer>();
+            if (sr != null)
+            {
+                sr.color = aimLineColor;
+            }
+            
+            // Disable physics for aim particles
+            Rigidbody2D rb = particle.GetComponent<Rigidbody2D>();
+            if (rb != null) rb.simulated = false;
+            
+            // Make particles slightly smaller than bullet trail
+            particle.transform.localScale = Vector3.one * 0.15f;
+            
+            // Add to list for tracking
+            aimParticles.Add(particle);
+        }
+    }
+    
+    private void UpdateAimLine()
+    {
+        if (aimParticles.Count == 0) return;
+        
+        for (int i = 0; i < aimParticles.Count; i++)
+        {
+            if (aimParticles[i] != null)
+            {
+                // Calculate position along the aim line
+                float t = (float)i / (aimParticles.Count - 1);
+                aimParticles[i].transform.position = transform.position + transform.up * t * aimLineLength;
+            }
+        }
+    }
+    
+    private void ClearAimLine()
+    {
+        foreach (var particle in aimParticles)
+        {
+            if (particle != null)
+            {
+                Destroy(particle);
+            }
+        }
+        aimParticles.Clear();
+    }
+    
     private void Shoot()
     {
         if (bulletPrefab == null)
@@ -86,12 +145,18 @@ public class CannonController : MonoBehaviour
             return;
         }
 
+        // Calculate bullet lifetime based on aim line length and bullet speed
+        float bulletLifetime = aimLineLength / bulletSpeed;
+        
         // Create bullet
         GameObject bullet = Instantiate(bulletPrefab, transform.position, transform.rotation);
         Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
         if (rb != null)
         {
             rb.linearVelocity = transform.up * bulletSpeed;
+            
+            // Destroy bullet after it travels the aim line distance
+            Destroy(bullet, bulletLifetime);
             
             // Add trail effect to the bullet
             if (trailParticlePrefab != null)
